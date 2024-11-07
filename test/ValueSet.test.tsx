@@ -1,4 +1,4 @@
-import { ValueSet } from "@/algorithm/ValueSet";
+import { ValueSet } from "@/utils/ValueSet";
 
 describe("ValueSet works when", () => {
     describe("add works when", () => {

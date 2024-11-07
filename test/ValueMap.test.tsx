@@ -1,4 +1,4 @@
-import { ValueMap } from "@/algorithm/ValueMap"; // Adjust the path as necessary
+import { ValueMap } from "@/utils/ValueMap"; // Adjust the path as necessary
 
 describe("ValueMap works when", () => {
     describe("set works when", () => {

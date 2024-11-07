@@ -1,0 +1,34 @@
+.Grid {
+    display: grid;
+    grid-template-columns: repeat(3, 0fr);
+    user-select: none;
+}
+.Grid-Column {
+    display: grid;
+}
+.Grid-Cell {
+    aspect-ratio: 1;
+    padding: 1rem;
+    border: 1px solid;
+}
+.Grid-Empty {
+    background-color: gray;
+}
+.Grid-Start {
+    background-color: crimson;
+}
+.Grid-Goal {
+    background-color: greenyellow;
+}
+.Grid-Wall {
+    background-color: darkslategray;
+}
+.Grid-Path {
+    background-color: goldenrod;
+}
+.Grid-Explored {
+    background-color: darkgoldenrod;
+}
+.Grid-New {
+    filter: brightness(0) saturate(100%) invert(10%) sepia(86%) saturate(3442%) hue-rotate(228deg) brightness(98%) contrast(88%);
+}

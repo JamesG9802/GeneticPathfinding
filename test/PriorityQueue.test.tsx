@@ -1,4 +1,4 @@
-import { HeapNode, PriorityQueue } from "@/algorithm/PriorityQueue"
+import { HeapNode, PriorityQueue } from "@/utils/PriorityQueue"
 
 
 describe("Priority Queue works when", () => {
@@ -192,6 +192,26 @@ describe("Priority Queue works when", () => {
             for(let i = 0; i < 100; i++) {
                 expect(pq.pop().element == elements[i]).toBeTruthy();
             }
+        })
+    })
+
+    //  Clear Test
+    describe("Clear when", () => {
+        it("handles occupied heap", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+            
+            for(let i = 0; i < 100; i++) {
+                let value = Math.random() * 500;
+                pq.push({element: value, priority: value});
+            }
+            
+            pq.clear();
+            expect(pq.is_empty()).toBeTruthy();
+        })
+        it("handles empty heap", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+            pq.clear();
+            expect(pq.is_empty()).toBeTruthy();
         })
     })
 })

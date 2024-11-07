@@ -93,6 +93,13 @@ export class PriorityQueue<TElement, TPriority> {
     }
 
     /**
+     * Clears the queue of all elements.
+     */
+    clear() {
+        this.#heap = [];
+    }
+
+    /**
      * Given the index of a node, get the index of its parent.
      * @param i - the index of the node
      * @returns the index of the parent
