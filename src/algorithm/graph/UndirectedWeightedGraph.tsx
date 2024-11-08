@@ -1,6 +1,7 @@
 import { ValueMap } from "@/utils/ValueMap";
 import { Chromosome } from "../gene/Chromosome";
 import { GeneticGraph } from "../gene/GeneticGraph";
+import { PriorityQueue } from "@/utils/PriorityQueue";
 
 /**
  * A graph with weighted, undirected connections between nodes.
@@ -9,10 +10,21 @@ export abstract class UndirectedWeightedGraph<TNode> implements GeneticGraph<TNo
     abstract vector_distance: (chromosome: Chromosome, vector: number) => number;
     abstract restrict_null: (chromsome: Chromosome) => boolean;
     abstract restrict_adjacent: (chromsome: Chromosome, node: TNode) => boolean;
-    abstract evaluate_path: (chromosome: Chromosome, node: TNode, goal_node: TNode, 
-        heuristic: (from: TNode, to: TNode) => number) => [number, number, TNode];
-    abstract execute_path: (chromosome: Chromosome, node: TNode, goal_node: TNode, 
-        costs: ValueMap<TNode, number>, connections: ValueMap<TNode, TNode>) => TNode;    
+    abstract evaluate_path: (
+        chromosome: Chromosome, 
+        node: TNode, 
+        goal_node: TNode, 
+        heuristic: (from: TNode, to: TNode) => number
+    ) => [number, number, TNode];
+    abstract execute_path: (
+        chromosome: Chromosome, 
+        node: TNode, 
+        goal_node: TNode,
+        heuristic: (from: TNode, to: TNode) => number,
+        possible_nodes: PriorityQueue<TNode, number>,
+        costs: ValueMap<TNode, number>,
+        connections: ValueMap<TNode, TNode>
+    ) => TNode;    
     
     /**
      * Returns a list of neighbors for a node.

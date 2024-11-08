@@ -23,7 +23,7 @@ export function* PPGA<TNode>(
     /**
      * The possible nodes that haven't been searched yet.
      */
-    let possible_nodes: PriorityQueue<TNode, number> = new PriorityQueue(true);
+    let possible_nodes: PriorityQueue<TNode, number> = new PriorityQueue(true, equals);
     
     /**
      * A key-value pair means that the key was reached from the value. 
@@ -74,7 +74,7 @@ export function* PPGA<TNode>(
         
         //  If the goal has been found, the search can stop
         if(equals(node, goal_node)) {
-            break;
+            return [connection_from, goal_node];
         }
 
         let genetic_algorithm_failed: boolean = true;
@@ -154,18 +154,12 @@ export function* PPGA<TNode>(
                 if(best_fitness.heuristic_distance <= heuristic(node, goal_node)) {
                     genetic_algorithm_failed = false;
                     
-                    console.log("IT ACTUALLY USED :OMG:");
-
                     //  Step 10 - Execute the subpath
                     
                     //  Change the node to be evaluated to end of the subpath.
-                    node = graph.execute_path(best_fitness.individual, 
-                        previous_node, 
-                        goal_node,
-                        node_costs, 
-                        connection_from
-                    );
-                    console.log(node);
+                    node = graph.execute_path(best_fitness.individual, previous_node, goal_node, 
+                        heuristic, possible_nodes, node_costs, connection_from);
+                    
                     //  Clear the individual list and add the best individual to the next generation
                     individuals = [best_fitness.individual];
 
@@ -185,9 +179,8 @@ export function* PPGA<TNode>(
         //  Step 5 - stop condition
         //  If the goal has been found, the search can stop
         if(equals(node, goal_node)) {
-            break;
+            return [connection_from, goal_node];
         }
-
 
         //  Then explore the chosen move (either from A* or the Genetic Algorithm)'s neighbors.
 
@@ -200,7 +193,12 @@ export function* PPGA<TNode>(
 
             if(!node_costs.has(neighbor) || new_cost < node_costs.get(neighbor)!) {
                 node_costs.set(neighbor, new_cost);
-                let priority: number = new_cost + heuristic(neighbor, goal_node);
+                
+                //  A*
+                // let priority: number = new_cost + heuristic(neighbor, goal_node);
+                // BFS
+                let priority: number = heuristic(neighbor, goal_node);
+                
                 possible_nodes.push({element: neighbor, priority: priority});
                 connection_from.set(neighbor, node);
             }
@@ -209,14 +207,14 @@ export function* PPGA<TNode>(
         //  Update the metrics
         if(distance_metric > 0.5 || success_metric > 0.4) {
             let distance_travelled = heuristic(starting_node, goal_node);
-            let distance_remaining = heuristic(possible_nodes.peek().element, goal_node) + Number.EPSILON;
+            let distance_remaining = heuristic(node, goal_node) + Number.EPSILON;
             distance_metric = distance_travelled / distance_remaining;
         }
 
         yield [connection_from, node];
     }
 
-    return [connection_from, goal_node];
+    return [connection_from, {x: -1, y: -1}];
 }
 
 export function rebuild_path<TNode>(

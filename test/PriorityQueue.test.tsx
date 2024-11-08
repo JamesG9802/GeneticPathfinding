@@ -214,4 +214,73 @@ describe("Priority Queue works when", () => {
             expect(pq.is_empty()).toBeTruthy();
         })
     })
+    
+    // Remove Test
+    describe("Remove when", () => {
+        it("handles removing an element from an occupied heap", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+    
+            // Populate the heap with known elements
+            pq.push({ element: 10, priority: 10 });
+            pq.push({ element: 20, priority: 20 });
+            pq.push({ element: 15, priority: 15 });
+            pq.push({ element: 1, priority:  3 });
+            pq.push({ element: 2, priority: 300 });
+    
+            // Remove an element and verify it no longer exists
+            expect(pq.remove(15)).toBeTruthy();
+            expect(pq.has(15)).toBeFalsy();
+            expect(pq.size() == 4).toBeTruthy();
+        });
+
+        it("handles removing the last element from an occupied heap", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+    
+            // Populate the heap with known elements
+            pq.push({ element: 10, priority: 10 });
+            pq.push({ element: 20, priority: 20 });
+            pq.push({ element: 15, priority: 15 });
+    
+            // Remove an element and verify it no longer exists
+            expect(pq.remove(15)).toBeTruthy();
+            expect(pq.has(15)).toBeFalsy();
+            expect(pq.size() == 2).toBeTruthy();
+        });
+    
+        it("handles attempting to remove a non-existing element", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+    
+            // Populate the heap with known elements
+            pq.push({ element: 10, priority: 10 });
+            pq.push({ element: 20, priority: 20 });
+            pq.push({ element: 15, priority: 15 });
+    
+            // Attempt to remove a non-existing element and verify the heap is unchanged
+            expect(pq.remove(30)).toBeFalsy();
+            expect(pq.size() == 3).toBeTruthy();  // Size should remain unchanged
+            expect(pq.has(10)).toBeTruthy();
+            expect(pq.has(20)).toBeTruthy();
+            expect(pq.has(15)).toBeTruthy();
+        });
+    
+        it("handles removing the only element in the heap", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+    
+            // Add a single element to the heap
+            pq.push({ element: 10, priority: 10 });
+    
+            // Remove the only element and verify the heap is empty
+            expect(pq.remove(10)).toBeTruthy();
+            expect(pq.is_empty()).toBeTruthy();
+        });
+    
+        it("handles attempting to remove from an empty heap", () => {
+            let pq: PriorityQueue<number, number> = new PriorityQueue(true);
+    
+            // Attempt to remove from an empty heap
+            expect(pq.remove(10)).toBeFalsy();
+            expect(pq.is_empty()).toBeTruthy();  // Heap should remain empty
+        });
+    });
+    
 })

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./index.css";
 import { Graph2D, Node2D, Node2DEquals } from "../algorithm/graph/Graph2D";
 import { ValueMap } from "../utils/ValueMap";
@@ -53,8 +53,7 @@ export function Grid() {
         }
 
         let graph = new Graph2D(width, height);
-        let solver = PPGA(graph, start_node, goal_node, Node2DEquals, 
-            (from: Node2D, to: Node2D) => Math.abs(from.x - to.x) + Math.abs(from.y - to.y));
+        let solver = PPGA(graph, start_node, goal_node, Node2DEquals, graph.manhattan_distance);
         let connections = new ValueMap<Node2D, Node2D>();
 
         set_grid([...grid]);
@@ -168,8 +167,7 @@ export function Grid() {
         set_start_node(new_start_node);
         set_goal_node(new_goal_node);
         
-        set_solver(PPGA(new_graph, new_start_node, new_goal_node, Node2DEquals, 
-            (from: Node2D, to: Node2D) => Math.abs(from.x - to.x) + Math.abs(from.y - to.y)));
+        set_solver(PPGA(new_graph, new_start_node, new_goal_node, Node2DEquals, graph.manhattan_distance));
         set_solver_done(false);
     }
 

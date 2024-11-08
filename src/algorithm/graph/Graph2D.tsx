@@ -3,6 +3,7 @@ import { ValueSet } from "../../utils/ValueSet";
 import { GeneticGraph } from "../gene/GeneticGraph";
 import { calculate_fitness, Chromosome } from "../gene/Chromosome";
 import { ValueMap } from "@/utils/ValueMap";
+import { PriorityQueue } from "@/utils/PriorityQueue";
 
 /**
  * A node for a `Graph2D`.
@@ -205,36 +206,34 @@ export class Graph2D extends UndirectedWeightedGraph<Node2D> implements GeneticG
             let magnitude: number = Math.abs(vectors[i]);
             
             //  Don't need to worry about the case when the vectors[i] is 0 because the loop won't run.
-            let unit_vector: number = vectors[i] > 0 ? 1 : -1;
 
+            let unit_vector: Node2D = 
+                i % 2 == 0 ?    //  vertical vector, because +1 is up, it needs to be changed to -1
+                    vectors[i] > 0 ? 
+                        {x: 0, y: -1} :    
+                        {x: 0, y: +1}
+                    :
+            //  i % 2 == 1      //  horizontal vector
+                    vectors[i] > 0 ? 
+                        {x: +1, y: 0} :    
+                        {x: -1, y: 0}
+            
             let found_goal: boolean = false;
-            if(i % 2 == 0) {
-                //  Because the vertical vectors are encoded as -1 = down and +1 = up, the unit vector needs to be flipped.
-                unit_vector *= -1;
+            
+            for(let i = 0; i < magnitude; i++) {
+                let next_node = { x: path_node.x + unit_vector.x, y: path_node.y + unit_vector.y };
 
-                for(let i = 0; i < magnitude; i++) {
-                    path_node.y += unit_vector;
-                    total_movement += 1;
-                    if(!this.is_passable(path_node) || !this.in_bounds(path_node))
-                        return [-1, -1, {x: -1, y: -1}];
+                //  Unlike the paper, there is no separate adaption step of the sub-path
+                //  Instead, the path is adapted on the fly by ending movement vectors when necessary.
+                if(!this.is_passable(next_node) || !this.in_bounds(next_node))
+                    break;
+                
+                total_movement += 1;
+                path_node = next_node;
 
-                    if(Node2DEquals(path_node, goal_node)) {
-                        found_goal = true;
-                        break;
-                    }
-                }
-            }
-            else {
-                for(let i = 0; i < magnitude; i++) {
-                    path_node.x += unit_vector;
-                    total_movement += 1;
-                    if(!this.is_passable(path_node) || !this.in_bounds(path_node))
-                        return [-1, -1, {x: -1, y: -1}];
-                    
-                    if(Node2DEquals(path_node, goal_node)) {
-                        found_goal = true;
-                        break;
-                    }
+                if(Node2DEquals(path_node, goal_node)) {
+                    found_goal = true;
+                    break;
                 }
             }
             if(found_goal) {
@@ -254,10 +253,16 @@ export class Graph2D extends UndirectedWeightedGraph<Node2D> implements GeneticG
         chromosome: Chromosome, 
         node: Node2D, 
         goal_node: Node2D,
+        heuristic: (from: Node2D, to: Node2D) => number,
+        possible_nodes: PriorityQueue<Node2D, number>,
         costs: ValueMap<Node2D, number>,
         connections: ValueMap<Node2D, Node2D>
     ) => Node2D = 
-    (chromosome: Chromosome, node: Node2D, goal_node: Node2D, costs: ValueMap<Node2D, number>, connections: ValueMap<Node2D, Node2D>) => 
+    (chromosome: Chromosome, node: Node2D, goal_node: Node2D, 
+        heuristic: (from: Node2D, to: Node2D) => number,
+        possible_nodes: PriorityQueue<Node2D, number>,
+        costs: ValueMap<Node2D, number>,
+        connections: ValueMap<Node2D, Node2D>) => 
     {
         let vectors: number[] = [];
         for(let i = 0; i < 4; i++) {
@@ -274,53 +279,56 @@ export class Graph2D extends UndirectedWeightedGraph<Node2D> implements GeneticG
             let magnitude: number = Math.abs(vectors[i]);
             
             //  Don't need to worry about the case when the vectors[i] is 0 because the loop won't run.
-            let unit_vector: number = vectors[i] > 0 ? 1 : -1;
+            let unit_vector: Node2D = 
+                i % 2 == 0 ?    //  vertical vector, because +1 is up, it needs to be changed to -1
+                    vectors[i] > 0 ? 
+                        {x: 0, y: -1} :    
+                        {x: 0, y: +1}
+                    :
+            //  i % 2 == 1      //  horizontal vector
+                    vectors[i] > 0 ? 
+                        {x: +1, y: 0} :    
+                        {x: -1, y: 0}
 
             let found_goal: boolean = false;
 
-            if(i % 2 == 0) {
-                //  Because the vertical vectors are encoded as -1 = down and +1 = up, the unit vector needs to be flipped.
-                unit_vector *= -1;
+            for(let i = 0; i < magnitude; i++) {
+                let next_node = { x: path_node.x + unit_vector.x, y: path_node.y + unit_vector.y };
 
-                for(let i = 0; i < magnitude; i++) {
-                    let next_node = { x: path_node.x, y: path_node.y + unit_vector };
+                if(!this.is_passable(next_node) || !this.in_bounds(next_node)) {
+                    break;
+                }
 
-                    connections.set(next_node, path_node );
-                    costs.set(next_node, costs.get(path_node)! + this.cost(next_node, path_node));
+                path_node = next_node;
 
-                    path_node = next_node;
+                possible_nodes.remove(path_node);
 
-                    if(!this.is_passable(path_node) || !this.in_bounds(path_node)) {
-                        console.error(`Managed to find an impassable node when the path should have been verified. ${path_node}`);
-                        return {x: -1, y: -1};
-                    }
-
-                    if(Node2DEquals(path_node, goal_node)) {
-                        found_goal = true;
-                        break;
+                let neighbors: Node2D[] = this.neighbors(path_node);
+                for(let i = 0; i < neighbors.length; i++) {
+                    let neighbor: Node2D = neighbors[i];
+                    let new_cost: number = costs.get(node)! + this.cost(node, neighbor);
+        
+                    if(!costs.has(neighbor) || new_cost < costs.get(neighbor)!) {
+                        costs.set(neighbor, new_cost);
+                        
+                        //  A*
+                        // let priority: number = new_cost + heuristic(neighbor, goal_node);
+                        // BFS
+                        let priority: number = heuristic(neighbor, goal_node);
+                        
+                        if(!possible_nodes.has(neighbor))
+                            possible_nodes.push({element: neighbor, priority: priority});
+                        connections.set(neighbor, path_node);
                     }
                 }
-            }
-            else {
-                for(let i = 0; i < magnitude; i++) {
-                    let next_node = { x: path_node.x + unit_vector, y: path_node.y};
 
-                    connections.set(next_node, path_node);
-                    costs.set(next_node, costs.get(path_node)! + this.cost(next_node, path_node));
-
-                    path_node = next_node;
-
-                    if(!this.is_passable(path_node) || !this.in_bounds(path_node)) {
-                        console.error(`Managed to find an impassable node when the path should have been verified. ${path_node}`);
-                        return {x: -1, y: -1};
-                    }
-                    
-                    if(Node2DEquals(path_node, goal_node)) {
-                        found_goal = true;
-                        break;
-                    }
+                if(Node2DEquals(path_node, goal_node)) {
+                    found_goal = true;
+                    break;
                 }
+
             }
+
             if(found_goal) {
                 break;
             }

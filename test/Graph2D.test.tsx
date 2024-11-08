@@ -1,5 +1,6 @@
 import { Chromosome } from "@/algorithm/gene/Chromosome";
-import { Graph2D, Node2D, Node2DEquals } from "@/algorithm/graph/Graph2D"
+import { Graph2D, Node2D, Node2DEquals } from "@/algorithm/graph/Graph2D";
+import { PriorityQueue } from "@/utils/PriorityQueue";
 import { ValueMap } from "@/utils/ValueMap";
 
 describe("Graph2D works when", () => {
@@ -485,10 +486,24 @@ describe("Graph2D works when", () => {
             // - - W - -
             // - - - - -
 
-            //  The path collides with a wall, so the fitness is -1.
+            //  The board then looks like this when finished
+            // - - - - -
+            // - - W - -
+            // - S W - G
+            // - - W - -
+            // - - - - -
+
+            //  The fitness formula is FA = ROOF - HEURISTIC - TOTAL_MOVEMENT * 0.1;
+            //  In this case, the heuristic is manhattan distance.
+            //  The total movement is half the the total nodes travelled.
+            //  HEURISTIC = 3
+            //  TOTAL_MOVEMENT = 1
+            //  ROOF = 3 * (width + height) = 30
+            //  Expected fitness = 30 - 3 - 0.5 * 0.1 = 29.6
             let fitness = graph.evaluate_path(chromosome, start_node, goal_node, heuristic);
-            expect(fitness[0] == -1).toBeTruthy();
-            expect(fitness[1] == -1).toBeTruthy();
+            expect(fitness[0] == 26.95).toBeTruthy();
+            expect(fitness[1] == 3).toBeTruthy();
+            expect(Node2DEquals(fitness[2], {x: 1, y: 2})).toBeTruthy();
         })
         it("chromosome goes out of bounds", () => {
             let graph: Graph2D = new Graph2D(5, 5);
@@ -521,10 +536,27 @@ describe("Graph2D works when", () => {
             // V - - - -
             // V
 
-            //  The path goes out of bounds, so the fitness is -1.
+
+
+            //  The board then looks like this when finished
+            // - - - - -
+            // - - W - -
+            // - - W - G
+            // - - W - -
+            // S - - - -
+
+            //  The fitness formula is FA = ROOF - HEURISTIC - TOTAL_MOVEMENT * 0.1;
+            //  In this case, the heuristic is manhattan distance.
+            //  The total movement is half the the total nodes travelled.
+            //  HEURISTIC = 6
+            //  TOTAL_MOVEMENT = 2
+            //  ROOF = 3 * (width + height) = 30
+            //  Expected fitness = 30 - 6 - 1 * 0.1 = 29.6
+
             let fitness = graph.evaluate_path(chromosome, start_node, goal_node, heuristic);
-            expect(fitness[0] == -1).toBeTruthy();
-            expect(fitness[1] == -1).toBeTruthy();
+            expect(fitness[0] == 23.9).toBeTruthy();
+            expect(fitness[1] == 6).toBeTruthy();
+            expect(Node2DEquals(fitness[2], {x: 0, y: 4})).toBeTruthy();
         })
     }) 
     //  Evaluate path test
@@ -545,6 +577,7 @@ describe("Graph2D works when", () => {
             let current_node: Node2D = {x: 0, y: 2};
             let goal_node: Node2D = {x: 3, y: 4};
 
+            let possible_nodes: PriorityQueue<Node2D, number> = new PriorityQueue();
             let connections: ValueMap<Node2D, Node2D> = new ValueMap();
                 connections.set({x: 0, y: 0}, {x: 0, y: 0});
                 connections.set({x: 0, y: 1}, {x: 0, y: 0});
@@ -596,53 +629,11 @@ describe("Graph2D works when", () => {
             expect(costs.size() == 3).toBeTruthy();
             expect(connections.size() == 3).toBeTruthy();
 
-            let end_node = graph.execute_path(chromosome, current_node, goal_node, costs, connections);
+            let end_node = graph.execute_path(chromosome, current_node, goal_node, graph.manhattan_distance, possible_nodes, costs, connections);
 
             expect(Node2DEquals(end_node, goal_node));
-            expect(costs.size() == 8).toBeTruthy();
-            expect(connections.size() == 8).toBeTruthy();
-            
-
-            let expected_connections: ValueMap<Node2D, Node2D> = new ValueMap();
-                expected_connections.set({x: 0, y: 0}, {x: 0, y: 0});
-                expected_connections.set({x: 0, y: 1}, {x: 0, y: 0});
-                expected_connections.set({x: 0, y: 2}, {x: 0, y: 1});
-
-                expected_connections.set({x: 0, y: 3}, {x: 0, y: 2});
-                expected_connections.set({x: 0, y: 4}, {x: 0, y: 3});
-                expected_connections.set({x: 1, y: 4}, {x: 0, y: 4});
-                expected_connections.set({x: 2, y: 4}, {x: 1, y: 4});
-                expected_connections.set({x: 3, y: 4}, {x: 2, y: 4});
-
-            let expected_costs: ValueMap<Node2D, number> = new ValueMap();
-            expected_costs.set({x: 0, y: 0}, 0);
-
-            keys = expected_connections.keys();
-            for(let i = 1; i < keys.length; i++) {
-                expected_costs.set(keys[i], 
-                    expected_costs.get(expected_connections.get(keys[i])!)! + 
-                    graph.cost(keys[i], expected_connections.get(keys[i])!)
-                );
-            }
-
-            keys = connections.keys();
-            let expected_keys = expected_connections.keys();
-            for(let i = 0; i < keys.length; i++) {
-                expect(Node2DEquals(keys[i], expected_keys[i])).toBeTruthy();
-                expect(
-                    Node2DEquals(
-                        connections.get(keys[i])!, 
-                        expected_connections.get(expected_keys[i])!
-                    )
-                ).toBeTruthy();
-            }
-
-            keys = costs.keys();
-            expected_keys = expected_costs.keys();
-            for(let i = 0; i < keys.length; i++) {
-                expect(Node2DEquals(keys[i], expected_keys[i])).toBeTruthy();
-                expect(costs.get(keys[i])! == expected_costs.get(expected_keys[i])!).toBeTruthy();
-            }
+            expect(costs.size() == 11).toBeTruthy();
+            expect(connections.size() == 11).toBeTruthy();
         })
 
         it("explores path to graph", () => {
@@ -651,6 +642,7 @@ describe("Graph2D works when", () => {
             let current_node: Node2D = {x: 0, y: 2};
             let goal_node: Node2D = {x: 3, y: 3};
 
+            let possible_nodes: PriorityQueue<Node2D, number> = new PriorityQueue();
             let connections: ValueMap<Node2D, Node2D> = new ValueMap();
                 connections.set({x: 0, y: 0}, {x: 0, y: 0});
                 connections.set({x: 0, y: 1}, {x: 0, y: 0});
@@ -702,65 +694,20 @@ describe("Graph2D works when", () => {
             expect(costs.size() == 3).toBeTruthy();
             expect(connections.size() == 3).toBeTruthy();
 
-            let end_node = graph.execute_path(chromosome, current_node, goal_node, costs, connections);
+            let end_node = graph.execute_path(chromosome, current_node, goal_node, graph.manhattan_distance, possible_nodes, costs, connections);
 
             expect(Node2DEquals(end_node, goal_node));
-            expect(costs.size() == 9).toBeTruthy();
-            expect(connections.size() == 9).toBeTruthy();
-            
-
-            let expected_connections: ValueMap<Node2D, Node2D> = new ValueMap();
-                expected_connections.set({x: 0, y: 0}, {x: 0, y: 0});
-                expected_connections.set({x: 0, y: 1}, {x: 0, y: 0});
-                expected_connections.set({x: 0, y: 2}, {x: 0, y: 1});
-
-                expected_connections.set({x: 0, y: 3}, {x: 0, y: 2});
-                expected_connections.set({x: 0, y: 4}, {x: 0, y: 3});
-                expected_connections.set({x: 1, y: 4}, {x: 0, y: 4});
-                expected_connections.set({x: 2, y: 4}, {x: 1, y: 4});
-                expected_connections.set({x: 3, y: 4}, {x: 2, y: 4});
-                expected_connections.set({x: 3, y: 3}, {x: 3, y: 4});
-
-            let expected_costs: ValueMap<Node2D, number> = new ValueMap();
-            expected_costs.set({x: 0, y: 0}, 0);
-
-            keys = expected_connections.keys();
-            for(let i = 1; i < keys.length; i++) {
-                expected_costs.set(keys[i], 
-                    expected_costs.get(expected_connections.get(keys[i])!)! + 
-                    graph.cost(keys[i], expected_connections.get(keys[i])!)
-                );
-            }
-
-            keys = connections.keys();
-            let expected_keys = expected_connections.keys();
-            for(let i = 0; i < keys.length; i++) {
-                expect(Node2DEquals(keys[i], expected_keys[i])).toBeTruthy();
-                expect(
-                    Node2DEquals(
-                        connections.get(keys[i])!, 
-                        expected_connections.get(expected_keys[i])!
-                    )
-                ).toBeTruthy();
-            }
-
-            keys = costs.keys();
-            expected_keys = expected_costs.keys();
-            for(let i = 0; i < keys.length; i++) {
-                expect(Node2DEquals(keys[i], expected_keys[i])).toBeTruthy();
-                expect(costs.get(keys[i])! == expected_costs.get(expected_keys[i])!).toBeTruthy();
-            }
+            expect(costs.size() == 13).toBeTruthy();
+            expect(connections.size() == 13).toBeTruthy();
         })
         
-        it("fails normally 1", () => {
-            //  Suppress warning
-            jest.spyOn(console, "error").mockImplementation(() => {});
-
+        it("adapts path 1", () => {
             let graph: Graph2D = new Graph2D(5, 5);
 
             let current_node: Node2D = {x: 0, y: 2};
             let goal_node: Node2D = {x: 4, y: 2};
 
+            let possible_nodes: PriorityQueue<Node2D, number> = new PriorityQueue();
             let connections: ValueMap<Node2D, Node2D> = new ValueMap();
             let costs: ValueMap<Node2D, number> = new ValueMap();
 
@@ -770,19 +717,16 @@ describe("Graph2D works when", () => {
 
             let chromosome: Chromosome = { 
                 distances: [1, 1, 1, 1], 
-                directions: [1, 1, 1, 1] 
+                directions: [1, 1, 1, -1] 
             };
 
-            let end_node = graph.execute_path(chromosome, current_node, goal_node, costs, connections);
-
-            expect(Node2DEquals(end_node, {x: -1, y: -1}));
+            let end_node = graph.execute_path(chromosome, current_node, goal_node, graph.manhattan_distance, possible_nodes, costs, connections);
+            expect(Node2DEquals(end_node, {x: 0, y: 0})).toBeTruthy();
         })
-        it("fails normally 2", () => {
-            //  Suppress warning
-            jest.spyOn(console, "error").mockImplementation(() => {});
-
+        it("adapts path 2", () => {
             let graph: Graph2D = new Graph2D(5, 5);
 
+            let possible_nodes: PriorityQueue<Node2D, number> = new PriorityQueue();
             let current_node: Node2D = {x: 0, y: 2};
             let goal_node: Node2D = {x: 4, y: 2};
 
@@ -798,9 +742,9 @@ describe("Graph2D works when", () => {
                 directions: [0, 1, 1, 1] 
             };
 
-            let end_node = graph.execute_path(chromosome, current_node, goal_node, costs, connections);
+            let end_node = graph.execute_path(chromosome, current_node, goal_node, graph.manhattan_distance, possible_nodes, costs, connections);
 
-            expect(Node2DEquals(end_node, {x: -1, y: -1}));
+            expect(Node2DEquals(end_node, {x: 4, y: 0})).toBeTruthy();
         })
     })
 

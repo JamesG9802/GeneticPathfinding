@@ -1,6 +1,6 @@
 import { ValueMap } from "@/utils/ValueMap";
 import { Chromosome } from "./Chromosome";
-
+import { PriorityQueue } from "@/utils/PriorityQueue";
 
 export interface GeneticGraph<TNode> {
     /**
@@ -27,7 +27,10 @@ export interface GeneticGraph<TNode> {
     restrict_adjacent: (chromsome: Chromosome, node: TNode) => boolean;
 
     /**
-     * Evaluates the fitness of a chromosome's path. -1 is returned if the path is invalid.
+     * Evaluates the fitness of a chromosome's path. 
+     * If the path's movement vector collides with a wall, that movement vector ceases.
+     * If the path finds the goal_node, the path ends immediately.
+     * -1 is returned if the path is invalid.
      * @param chromosome - the chromosome to be evaluated
      * @param node - the starting node
      * @param goal_node - the target note
@@ -47,6 +50,7 @@ export interface GeneticGraph<TNode> {
      * @param node - the node to begin the path
      * @param goal_node - the intended goal
      * @param heuristic - the estimate for how close a node is to the goal
+     * @param possible_nodes - 
      * @param costs - the map of costs to get to a node
      * @param connections - the map of connections
      * @returns the node where the path stops
@@ -55,6 +59,8 @@ export interface GeneticGraph<TNode> {
         chromosome: Chromosome,
         node: TNode,
         goal_node: TNode,
+        heuristic: (from: TNode, to: TNode) => number,
+        possible_nodes: PriorityQueue<TNode, number>,
         costs: ValueMap<TNode, number>,
         connections: ValueMap<TNode, TNode>
     ) => TNode;

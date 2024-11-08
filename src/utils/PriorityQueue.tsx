@@ -20,6 +20,11 @@ export type HeapNode<TElement, TPriority> = {
 export class PriorityQueue<TElement, TPriority> {
 
     /**
+     * Comparison function between the
+     */
+    #comparison: (a: TElement, b: TElement) => boolean;
+
+    /**
      * True if the priority queue uses a min-heap instead of a max-heap.
      */
     is_min: boolean;
@@ -33,9 +38,11 @@ export class PriorityQueue<TElement, TPriority> {
      * Create a new priority queue.
      * @param is_min - (Defaults to false). True if the priority queue should be a min-heap.
      */
-    constructor(is_min: boolean = false) {
+    constructor(is_min: boolean = false, 
+        comparison: (a: TElement, b: TElement) => boolean = (a, b) => JSON.stringify(a) == JSON.stringify(b)) {
         this.is_min = is_min;
         this.#heap = [];
+        this.#comparison = comparison;
     }
 
     /**
@@ -71,7 +78,7 @@ export class PriorityQueue<TElement, TPriority> {
     push(...values: HeapNode<TElement, TPriority>[]) {
         values.forEach(value => {
             this.#heap.push(value);
-            this.#siftUp();
+            this.#siftUp(this.size() - 1);
         });
         return this.size();
     }
@@ -88,7 +95,7 @@ export class PriorityQueue<TElement, TPriority> {
             this.#swap(0, bottom);
         }
         this.#heap.pop();
-        this.#siftDown();
+        this.#siftDown(0);
         return poppedValue;
     }
 
@@ -97,6 +104,56 @@ export class PriorityQueue<TElement, TPriority> {
      */
     clear() {
         this.#heap = [];
+    }
+
+    /**
+     * Returns true if the priority queue contains an element.
+     * @param element - the element that is possibly in the priority queue.
+     * @returns true if the element is in the priority queue.
+     */
+    has(element: TElement): boolean {
+        const index = this.#heap.findIndex(item => this.#comparison(item.element, element));
+        return index != -1;
+    }
+
+    /**
+     * Removes an element from the priority queue.
+     * @param element - the element to be removed
+     * @returns true if the element was removed.
+     */
+    remove(element: TElement): boolean {
+        const index = this.#heap.findIndex(item => this.#comparison(item.element, element));
+        if (index != -1) {
+            this.#heap[index] = this.#heap[this.size() - 1];
+
+            this.#heap.pop();
+            if(index != this.size()) {
+                let parent: number = this.#parent(index);
+                if (this.is_min) {
+                    // Min-heap: Check if we need to sift up or down
+                    if (index > 0 && this.#heap[index].priority < this.#heap[parent].priority) {
+                        // Sift up if necessary
+                        this.#siftUp(index);
+                    } else {
+                        // Otherwise, sift down
+                        this.#siftDown(index);
+                    }
+                } 
+                else {
+                    // Max-heap: Check if we need to sift up or down
+                    if (index > 0 && this.#heap[index].priority > this.#heap[parent].priority) {
+                        // Sift up if necessary
+                        this.#siftUp(index);
+                    } else {
+                        // Otherwise, sift down
+                        this.#siftDown(index);
+                    }
+                }    
+            }
+            
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -140,8 +197,8 @@ export class PriorityQueue<TElement, TPriority> {
     /**
      * Move the bottommost element until it satisfies the heap property.
      */
-    #siftUp() {
-        let node: number = this.size() - 1;
+    #siftUp(index: number) {
+        let node: number = index;
         let parent: number = this.#parent(node);
 
         //  for a min-heap, the priority comparison is reversed
@@ -164,8 +221,8 @@ export class PriorityQueue<TElement, TPriority> {
     /**
      * Moves the topmost element to the bottom until it satisfies the heap property.
      */
-    #siftDown() {
-        let node: number = 0;
+    #siftDown(index: number) {
+        let node: number = index;
         let left: number = this.#left(node);
         let right: number = this.#right(node);
 
